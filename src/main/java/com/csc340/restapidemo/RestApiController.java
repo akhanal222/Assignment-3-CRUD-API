@@ -6,15 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
+
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @RestController
 public class RestApiController {
-
-    Map<Integer, Student> studentDatabase = new HashMap<>();
 
     /**
      * Hello World API endpoint.
@@ -45,10 +43,7 @@ public class RestApiController {
      */
     @GetMapping("students/all")
     public Object getAllStudents() {
-        if (studentDatabase.isEmpty()) {
-            studentDatabase.put(1, new Student(1, "sample1", "csc", 3.86));
-        }
-        return studentDatabase.values();
+        return StudentFile.getStudentDatabase();
     }
 
     /**
@@ -59,7 +54,7 @@ public class RestApiController {
      */
     @GetMapping("students/{id}")
     public Student getStudentById(@PathVariable int id) {
-        return studentDatabase.get(id);
+        return StudentFile.getStudentById(id);
     }
 
 
@@ -71,8 +66,17 @@ public class RestApiController {
      */
     @PostMapping("students/create")
     public Object createStudent(@RequestBody Student student) {
-        studentDatabase.put(student.getId(), student);
-        return studentDatabase.values();
+        List<Student> students = StudentFile.getStudentDatabase();
+        students.add(student);
+        StudentFile.writeStudent(students);
+
+        StudentFile.writeStudent((List<Student>) student);
+        return StudentFile.getStudentDatabase();
+    }
+    @PutMapping("/students/update/{id}")
+    public List<Student> updateStudent(@PathVariable int id, @RequestBody Student student) {
+        StudentFile.updateStudent(id, student);
+        return StudentFile.getStudentDatabase();
     }
 
     /**
@@ -83,8 +87,8 @@ public class RestApiController {
      */
     @DeleteMapping("students/delete/{id}")
     public Object deleteStudent(@PathVariable int id) {
-        studentDatabase.remove(id);
-        return studentDatabase.values();
+        StudentFile.deleteStudent(id);
+        return StudentFile.getStudentDatabase();
     }
 
     /**
@@ -150,4 +154,27 @@ public class RestApiController {
         }
 
     }
-}
+        @GetMapping("/zoo")
+        public Object zoofact() {
+            try {
+                String url = "https://api.api-ninjas.com/v1/facts?limit=3";
+                RestTemplate restTemplate = new RestTemplate();
+                ObjectMapper mapper = new ObjectMapper();
+
+                String jsonListResponse = restTemplate.getForObject(url, String.class);
+                JsonNode root = mapper.readTree(jsonListResponse);
+
+                for (JsonNode rt : root) {
+
+                    String fact = rt.get("fact").asText();
+                    System.out.println("Fact: " + fact);
+                }
+
+                return root;
+            } catch (Exception ex) {
+                Logger.getLogger(RestApiController.class.getName()).log(Level.SEVERE, null, ex);
+                return "error in /zoo";
+            }
+        }
+    }
+
